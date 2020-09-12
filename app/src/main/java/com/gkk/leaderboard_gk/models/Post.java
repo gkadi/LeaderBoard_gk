@@ -6,6 +6,7 @@ public class Post  {
     private String email;
     private String githublink;
 
+
     public Post() {
     }
     public Post(String firstName, String lastName, String email, String githublink) {

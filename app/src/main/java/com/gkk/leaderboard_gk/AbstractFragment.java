@@ -89,6 +89,7 @@ public abstract class AbstractFragment extends Fragment  implements SwipeRefresh
     @SuppressLint("StaticFieldLeak")
     public void loadData() {
         if(!internetAvailable(getContext())) {
+            mSwipeRefreshLayout.setRefreshing(false);
             Toast.makeText(getContext(), "Internet connection is required", Toast.LENGTH_SHORT).show();
             return;
         }

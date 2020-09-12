@@ -1,34 +1,36 @@
 package com.gkk.leaderboard_gk;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.RequestQueue;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.gkk.leaderboard_gk.models.Post;
-import com.gkk.leaderboard_gk.utils.UtilRetrofit;
+import com.gkk.leaderboard_gk.utils.UtilPostingApi;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class SubmitActivity extends AppCompatActivity {
 
-    public static final String BASE_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf9d1TcNU6zc6KR8bSEM41Z1g1zl35cwZr2xyjIhaMAz8WChQ/formResponse/";
+    public static final String FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf9d1TcNU6zc6KR8bSEM41Z1g1zl35cwZr2xyjIhaMAz8WChQ/formResponse";
+
     private Toolbar mToolbar;
 
     private Dialog mDialog;
@@ -40,8 +42,9 @@ public class SubmitActivity extends AppCompatActivity {
     private EditText mEdTLasName;
     private EditText mEdTEmail;
     private EditText mEdTGithub;
-    private UtilRetrofit mUtilRetrofit;
+    private UtilPostingApi mUtilRetrofit;
 
+    private RequestQueue queue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,13 +92,10 @@ public class SubmitActivity extends AppCompatActivity {
         mEdTFirstName.setText("Gloire");
         mEdTLasName.setText("KADIMA");
         mEdTEmail.setText("gloirekadima@gmail.com");
-        mEdTGithub.setText("https://ThisIsAtest.com/");
+        mEdTGithub.setText("https://github.com/gkadi/LeaderBoard_gk");
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        mUtilRetrofit = retrofit.create(UtilRetrofit.class);
+        // Initializing Queue for Volley
+        queue = Volley.newRequestQueue(getApplicationContext());
     }
 
     private void showConfirmDialog() {
@@ -121,31 +121,48 @@ public class SubmitActivity extends AppCompatActivity {
     }
 
     private void submit() {
-        Post post = new Post(mEdTFirstName.getText().toString(), mEdTLasName.getText().toString(),
+        final Post post = new Post(mEdTFirstName.getText().toString(), mEdTLasName.getText().toString(),
                 mEdTEmail.getText().toString(), mEdTGithub.getText().toString());
 
-        Call<Post> call = mUtilRetrofit.createPost(post.getEmail(), post.getFirstName(), post.getLastName(), post.getGithublink());
-        call.enqueue(new Callback<Post>() {
-            @Override
-            public void onResponse(Call<Post> call, Response<Post> response) {
-                if(!response.isSuccessful()){
-                    Toast.makeText(SubmitActivity.this, response.errorBody().toString(), Toast.LENGTH_LONG).show();
-                    notSuccessfulPost();
-                    return;
-                }
+        StringRequest request = new StringRequest(
+                Request.Method.POST,
+                FORM_URL,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d("TAG", "Response: " + response);
+                        if (response.length() > 0) {
+                            successfulPost();
+                        } else {
+                            notSuccessfulPost();
+                            Toast.makeText(SubmitActivity.this, "Failed, try again", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        notSuccessfulPost();
+                        Toast.makeText(SubmitActivity.this, "Error while Posting Data", Toast.LENGTH_SHORT).show();
+                    }
+                 })
+                {
+                    @Override
+                    protected Map<String, String> getParams() {
+                        Map<String, String> params = new HashMap<>();
+                        params.put(UtilPostingApi.email, post.getEmail());
+                        params.put(UtilPostingApi.firstName, post.getFirstName());
+                        params.put(UtilPostingApi.lastName, post.getLastName());
+                        params.put(UtilPostingApi.link, post.getGithublink());
 
-                Post postresponse = response.body();
-                Toast.makeText(SubmitActivity.this, postresponse.getEmail(), Toast.LENGTH_SHORT).show();
+                        return params;
+                    }
+                };
+        request.setRetryPolicy(new DefaultRetryPolicy(50000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
-                successfulPost();
-            }
-
-            @Override
-            public void onFailure(Call<Post> call, Throwable t) {
-                notSuccessfulPost();
-                Toast.makeText(SubmitActivity.this, t.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        });
+        queue.add(request);
     }
 
     private void successfulPost(){
