@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">LEADERBOAD</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="learning_leaders_fragment">Learning Leaders</string>
+    <string name="iq_leaders_fragment">Skill IQ Leaders</string>
+    <string name="fragment_title">fragment_title</string>
+    <string name="project_submission">Project Submission</string>
+    <string name="submit">Submit</string>
+    <string name="leaderboad">LEADERBOAD</string>
+    <string name="are_you_sure">Are you sure</string>
+    <string name="mark">\?</string>
+
+</resources>
